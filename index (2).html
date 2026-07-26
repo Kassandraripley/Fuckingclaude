@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fucking Claude</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c10;--surface:#16161f;--border:rgba(255,255,255,0.08);
+  --clay:#CC785C;--clay-b:#e08a6a;--text:#ede9e2;--muted:#5a5760;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden}
+body{display:flex;flex-direction:column;align-items:center;padding:0 1rem 3rem}
+
+/* HEADER */
+header{width:100%;max-width:520px;padding:2rem 0 0;text-align:center}
+h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2rem,7vw,3.2rem);letter-spacing:-0.04em;line-height:1}
+h1 span{color:var(--clay)}
+.tagline{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:.5rem}
+
+/* MODE SELECTOR */
+.mode-bar{display:flex;gap:8px;margin-top:1.8rem;flex-wrap:wrap;justify-content:center}
+.mode-btn{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  color:var(--muted);font-family:'Inter',sans-serif;font-size:.78rem;font-weight:500;
+  padding:8px 16px;cursor:pointer;transition:all .15s;letter-spacing:.04em;
+  display:flex;align-items:center;gap:6px
+}
+.mode-btn:hover{border-color:var(--clay);color:var(--text)}
+.mode-btn.active{background:var(--clay);border-color:var(--clay);color:#fff}
+.mode-icon{font-size:1rem}
+
+/* SCORE */
+.score-row{display:flex;gap:2.5rem;margin-top:1.6rem;text-align:center}
+.stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--clay-b)}
+.stat-lbl{font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+
+/* ARENA */
+#arena{
+  position:relative;width:min(360px,88vw);height:min(360px,88vw);
+  margin-top:1.6rem;display:flex;align-items:center;justify-content:center;
+  border-radius:16px;overflow:hidden;background:var(--surface);
+  border:1px solid var(--border);user-select:none;-webkit-tap-highlight-color:transparent
+}
+
+canvas#scene{position:absolute;inset:0;width:100%;height:100%}
+
+/* the Claude logo SVG inside arena */
+#logo-wrap{position:absolute;pointer-events:none;transition:transform .12s cubic-bezier(.25,.46,.45,.94)}
+#logo-wrap svg{display:block}
+
+/* INSTRUCTIONS */
+#instruction{
+  position:absolute;bottom:12px;left:0;right:0;text-align:center;
+  font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  pointer-events:none
+}
+
+/* FLOATIES */
+.floatie{position:fixed;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--clay-b);pointer-events:none;animation:fly .85s ease-out forwards;z-index:999}
+@keyframes fly{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(.65)}}
+
+/* DAMAGE BAR */
+
+
+
+/* SHARE + LB */
+.divider{width:min(480px,90vw);height:1px;background:var(--border);margin:2rem 0}
+.submit-section{width:min(400px,90vw);display:flex;flex-direction:column;align-items:center;gap:10px}
+.input-row{display:flex;gap:8px;width:100%}
+#handle{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Inter',sans-serif;font-size:.9rem;padding:0 14px;height:42px;outline:none;transition:border-color .15s}
+#handle::placeholder{color:var(--muted)}
+#handle:focus{border-color:var(--clay)}
+.btn-submit{background:var(--clay);border:none;border-radius:8px;color:#fff;font-family:'Inter',sans-serif;font-weight:500;font-size:.85rem;padding:0 18px;height:42px;cursor:pointer;white-space:nowrap;transition:background .15s,transform .08s}
+.btn-submit:hover{background:var(--clay-b)}
+.btn-submit:active{transform:scale(.96)}
+.hint-txt{font-size:.7rem;color:var(--muted);text-align:center}
+#share-btn{display:none;align-items:center;gap:8px;background:#000;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-family:'Inter',sans-serif;font-weight:500;font-size:.85rem;padding:0 18px;height:42px;cursor:pointer;text-decoration:none;transition:background .15s,transform .08s;margin-top:4px}
+#share-btn:hover{background:#111}
+#share-btn svg{width:15px;height:15px}
+#share-btn.visible{display:flex}
+.lb-title{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+#lb-list{display:flex;flex-direction:column;gap:5px;width:min(480px,92vw)}
+.lb-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+.lb-rank{font-family:'Syne',sans-serif;font-weight:700;font-size:.8rem;color:var(--muted);min-width:22px;text-align:center}
+.lb-rank.gold{color:#f5c842}.lb-rank.silver{color:#b0b0b8}.lb-rank.bronze{color:#c0845a}
+.lb-handle{flex:1;font-size:.9rem;font-weight:500;color:var(--text)}
+.lb-handle a{color:var(--clay-b);text-decoration:none}
+.lb-handle a:hover{text-decoration:underline}
+.lb-score{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--text)}
+.lb-unit{font-size:.65rem;color:var(--muted);margin-left:2px}
+.lb-empty{text-align:center;color:var(--muted);font-size:.85rem;padding:2rem 0}
+#toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--surface);border:1px solid var(--clay);border-radius:10px;padding:9px 18px;font-size:.82rem;color:var(--clay-b);font-family:'Syne',sans-serif;font-weight:700;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;white-space:nowrap;z-index:500;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+footer{margin-top:3rem;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-align:center}
+footer a{color:var(--muted);text-decoration:underline}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Fucking <span>Claude</span></h1>
+  <p class="tagline">Click. Rage. Share.</p>
+</header>
+
+<div class="mode-bar">
+  <button class="mode-btn active" data-mode="click" onclick="setMode('click')"><span class="mode-icon">👊</span> Punch</button>
+  <button class="mode-btn" data-mode="fire" onclick="setMode('fire')"><span class="mode-icon">🔥</span> Burn</button>
+  <button class="mode-btn" data-mode="axe" onclick="setMode('axe')"><span class="mode-icon">🪓</span> Chop</button>
+  <button class="mode-btn" data-mode="drag" onclick="setMode('drag')"><span class="mode-icon">🚗</span> Drag</button>
+</div>
+
+<div class="score-row">
+  <div class="stat"><div class="stat-val" id="total-val">0</div><div class="stat-lbl">total damage</div></div>
+  <div class="stat"><div class="stat-val" id="best-val">0</div><div class="stat-lbl">best/sec</div></div>
+</div>
+
+<div id="arena">
+  <canvas id="scene"></canvas>
+  <div id="logo-wrap">
+    <svg id="claude-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" width="110" height="110">
+      <g id="logo-g" transform="translate(50,50)">
+        <rect x="-6.5" y="-33" width="13" height="22" rx="6.5" fill="#CC785C" transform="rotate(0)"/>
+        <rect x="-6.5" y="-33" width="13" height="22" rx="6.5" fill="#CC785C" opacity=".82" transform="rotate(45)"/>
+        <rect x="-6.5" y="-33" width="13" height="22" rx="6.5" fill="#CC785C" opacity=".64" transform="rotate(90)"/>
+        <rect x="-6.5" y="-33" width="13" height="22" rx="6.5" fill="#CC785C" opacity=".47" transform="rotate(135)"/>
+        <rect x="-6.5" y="-33" width="13" height="22" rx="6.5" fill="#CC785C" opacity=".33" transform="rotate(180)"/>
+        <rect x="-6.5" y="-33" width="13" height="22" rx="6.5" fill="#CC785C" opacity=".21" transform="rotate(225)"/>
+        <rect x="-6.5" y="-33" width="13" height="22" rx="6.5" fill="#CC785C" opacity=".12" transform="rotate(270)"/>
+        <rect x="-6.5" y="-33" width="13" height="22" rx="6.5" fill="#CC785C" opacity=".06" transform="rotate(315)"/>
+      </g>
+    </svg>
+  </div>
+  <div id="instruction">Click like crazy</div>
+</div>
+
+
+<div class="divider"></div>
+<div class="submit-section">
+  <div class="input-row">
+    <input type="text" id="handle" placeholder="@yourhandle" maxlength="30"/>
+    <button class="btn-submit" onclick="submitScore()">Submit</button>
+  </div>
+  <p class="hint-txt">Submit your best score to the leaderboard</p>
+  <a id="share-btn" href="#" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.632 5.905-5.632Zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    Share my score
+  </a>
+</div>
+
+<div class="divider"></div>
+<div class="lb-title">Global leaderboard</div>
+<div id="lb-list"><div class="lb-empty">No scores yet. Be the first.</div></div>
+
+<footer>fuckingclaude.com &nbsp;·&nbsp; not affiliated with <a href="https://anthropic.com" target="_blank">Anthropic</a></footer>
+<div id="toast"></div>
+
+<script>
+// prefers-reduced-motion
+window._reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let mode = 'click';
+let total = 0, cpsCount = 0, cps = 0, best = 0;
+let myHandle = '';
+let damage = 0; // 0-1000 cumulative per session display
+
+// Fire state
+let firePower = 0; // 0-100 — grows with clicks
+let fireParticles = [];
+
+// Axe state
+let axeCracks = [];
+let axeSwing = 0; // 0=up, animating down
+let axeY = -80;
+let axeSwinging = false;
+
+// Drag state
+let carX = -120;
+let logoX = 0, logoY = 0;
+let dragging = false;
+let logoVX = 0, logoRot = 0;
+let sparks = [];
+
+// ═══════════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════════
+const arena = document.getElementById('arena');
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+const logoWrap = document.getElementById('logo-wrap');
+const logoSvg = document.getElementById('claude-logo');
+const logoG = document.getElementById('logo-g');
+
+function resizeCanvas() {
+  canvas.width = arena.clientWidth;
+  canvas.height = arena.clientHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const W = () => canvas.width;
+const H = () => canvas.height;
+const CX = () => W()/2;
+const CY = () => H()/2;
+
+// ═══════════════════════════════════════════════
+// LOGO HELPERS
+// ═══════════════════════════════════════════════
+function setLogoPos(x, y, rot, scale) {
+  const s = scale || 1;
+  logoWrap.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${rot||0}deg) scale(${s})`;
+  logoWrap.style.left = '50%';
+  logoWrap.style.top = '50%';
+}
+
+function setLogoColor(r,g,b) {
+  const rects = logoSvg.querySelectorAll('rect');
+  rects.forEach(rect => { rect.setAttribute('fill', `rgb(${r},${g},${b})`); });
+}
+
+function resetLogoColor() { setLogoColor(204,120,92); }
+
+// ═══════════════════════════════════════════════
+// PARTICLES helpers
+// ═══════════════════════════════════════════════
+function rnd(a,b){ return a + Math.random()*(b-a); }
+
+// ═══════════════════════════════════════════════
+// MODE: CLICK (punch)
+// ═══════════════════════════════════════════════
+let punchParticles = [];
+let punchShake = 0;
+
+let flashAlpha = 0;
+function clickMode_hit(x, y) {
+  punchShake = 18;
+  flashAlpha = 0.12;
+  // massive burst of particles
+  for(let i=0;i<28;i++){
+    const angle = rnd(0, Math.PI*2);
+    const speed = rnd(3,12);
+    punchParticles.push({
+      x: CX()+rnd(-8,8), y: CY()+rnd(-8,8),
+      vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+      life:1, size: rnd(3,8), color:`hsl(${rnd(5,45)},100%,${rnd(55,80)}%)`
+    });
+  }
+  // shockwave ring
+  punchRings.push({r:0, maxR:120, life:1});
+  spawnFloatie(x, y);
+}
+
+if(!window.punchRings) window.punchRings=[];
+const punchRings = window.punchRings;
+
+function clickMode_draw() {
+  ctx.clearRect(0,0,W(),H());
+
+  // white flash on impact
+  if(flashAlpha>0 && !window._reduceMotion){
+    ctx.globalAlpha=flashAlpha;
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,W(),H());
+    flashAlpha*=0.45;
+    ctx.globalAlpha=1;
+  }
+
+  // shockwave rings
+  for(let i=punchRings.length-1;i>=0;i--){
+    const ring=punchRings[i];
+    ring.r+=8; ring.life*=0.82;
+    if(ring.life<0.02){punchRings.splice(i,1);continue;}
+    ctx.globalAlpha=ring.life*0.7;
+    ctx.strokeStyle='#ff9944';
+    ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(CX(),CY(),ring.r,0,Math.PI*2);ctx.stroke();
+  }
+
+  // shake logo — harder
+  if(punchShake>0){
+    setLogoPos(
+      rnd(-punchShake,punchShake),
+      rnd(-punchShake,punchShake),
+      rnd(-punchShake/3,punchShake/3)
+    );
+    punchShake *= 0.65;
+    if(punchShake<0.5){punchShake=0; setLogoPos(0,0,0);}
+  }
+
+  // particles
+  punchParticles = punchParticles.filter(p => p.life > 0.02);
+  punchParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.25;
+    p.vx *= 0.93; p.life *= 0.87;
+    // tail
+    ctx.globalAlpha=p.life*0.4;
+    ctx.strokeStyle=p.color;
+    ctx.lineWidth=p.size*0.5;
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*2,p.y-p.vy*2);ctx.stroke();
+    // head
+    ctx.globalAlpha=p.life;
+    ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ═══════════════════════════════════════════════
+// MODE: FIRE
+// ═══════════════════════════════════════════════
+let fireShake = 0;
+function fireMode_hit(x, y) {
+  firePower = Math.min(100, firePower + 8);
+  fireShake = 6 + firePower*0.08;
+  spawnFloatie(x, y, '🔥');
+  const n = Math.floor(firePower/6) + 6;
+  for(let i=0;i<n;i++) spawnFireParticle();
+  // ember burst from center
+  for(let i=0;i<8;i++){
+    const angle=rnd(0,Math.PI*2), spd=rnd(3,8);
+    fireParticles.push({
+      x:CX()+rnd(-10,10), y:CY()+rnd(-10,10),
+      vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd-2,
+      life:1, size:rnd(4,10), hue:rnd(5,45)
+    });
+  }
+}
+
+function spawnFireParticle() {
+  const cx = CX(), cy = CY()+30;
+  fireParticles.push({
+    x: cx + rnd(-30,30), y: cy,
+    vx: rnd(-1.5,1.5), vy: rnd(-3,-7),
+    life:1, size: rnd(6,18),
+    hue: rnd(5,45)
+  });
+}
+
+function fireMode_draw() {
+  ctx.clearRect(0,0,W(),H());
+
+  // decay power slowly when not clicking
+  firePower = Math.max(0, firePower - 0.4);
+
+  // spawn ambient particles based on power
+  if(firePower>5 && Math.random() < firePower/80) spawnFireParticle();
+
+  // ground embers
+  if(firePower>20){
+    for(let i=0;i<2;i++){
+      const ex = CX()+rnd(-40,40), ey = CY()+40;
+      ctx.globalAlpha = rnd(0.3,0.7)*firePower/100;
+      ctx.fillStyle = `hsl(${rnd(15,35)},100%,55%)`;
+      ctx.beginPath();
+      ctx.arc(ex,ey,rnd(1,3),0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // draw particles
+  fireParticles = fireParticles.filter(p=>p.life>0.02);
+  fireParticles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy-=0.05;
+    p.vx+=rnd(-0.2,0.2);
+    p.life*=0.94; p.size*=0.97;
+    const g = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size);
+    g.addColorStop(0,`hsla(${p.hue+20},100%,80%,${p.life})`);
+    g.addColorStop(0.4,`hsla(${p.hue},100%,55%,${p.life*0.8})`);
+    g.addColorStop(1,`hsla(${p.hue-10},100%,30%,0)`);
+    ctx.globalAlpha=1;
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    ctx.fill();
+  });
+
+  // shake on click
+  if(fireShake>0){
+    fireShake*=0.7;
+    if(fireShake<0.3) fireShake=0;
+  }
+  // tint logo red/orange with heat
+  if(firePower>0){
+    const t=firePower/100;
+    const r=Math.round(204+t*50), g2=Math.round(120-t*80), b=Math.round(92-t*80);
+    setLogoColor(Math.min(255,r),Math.max(0,g2),Math.max(0,b));
+    const sc=1+Math.sin(Date.now()/150)*0.02*t+t*0.05;
+    const shk=fireShake;
+    setLogoPos(rnd(-shk,shk)+rnd(-t*2,t*2), rnd(-shk,shk)+rnd(-t,t), rnd(-t*3,t*3), sc);
+  } else {
+    resetLogoColor();
+    setLogoPos(0,0,0,1);
+  }
+  ctx.globalAlpha=1;
+}
+
+// ═══════════════════════════════════════════════
+// MODE: AXE
+// ═══════════════════════════════════════════════
+let axeAngle = -40;
+let axeAnimating = false;
+let axeProgress = 0;
+let woodChips = [];
+let crackDepth = 0; // 0-1
+
+function axeMode_hit(x,y) {
+  if(axeAnimating) return;
+  axeAnimating = true;
+  axeProgress = 0;
+  spawnFloatie(x,y,'🪓');
+}
+
+function spawnChips(n){
+  for(let i=0;i<n;i++){
+    woodChips.push({
+      x:CX()+rnd(-15,15), y:CY(),
+      vx:rnd(-4,4), vy:rnd(-5,-1),
+      rot:rnd(0,360), vr:rnd(-8,8),
+      life:1, w:rnd(6,14), h:rnd(4,8)
+    });
+  }
+}
+
+let axeFlash=0;
+function axeMode_draw(){
+  ctx.clearRect(0,0,W(),H());
+  // flash on impact
+  if(axeFlash>0 && !window._reduceMotion){
+    ctx.globalAlpha=axeFlash;
+    ctx.fillStyle='#ffaa44';
+    ctx.fillRect(0,0,W(),H());
+    axeFlash*=0.45;
+    ctx.globalAlpha=1;
+  }
+
+  // axe swing animation
+  if(axeAnimating){
+    axeProgress += 0.07;
+    if(axeProgress>=1){
+      axeProgress=1; axeAnimating=false;
+      crackDepth=Math.min(1,crackDepth+0.18);
+      spawnChips(14);
+      axeFlash=0.12;
+      // brutal logo slam down then bounce up
+      setLogoPos(rnd(-10,10), 20, rnd(-8,8), 0.85);
+      setTimeout(()=>setLogoPos(rnd(-4,4),-8,rnd(-3,3),1.05),80);
+      setTimeout(()=>setLogoPos(0,0,0,1),180);
+    }
+  } else {
+    axeProgress=Math.max(0,axeProgress-0.05);
+  }
+
+  // draw axe
+  const swingArc = axeProgress<0.6
+    ? axeProgress/0.6 // down
+    : 1-(axeProgress-0.6)/0.4*0.5; // partial up
+  const axeTopX = CX()-80;
+  const axeTopY = CY()-120;
+  const ax = axeTopX + swingArc*90;
+  const ay = axeTopY + swingArc*130;
+  const aRot = -30 + swingArc*55;
+
+  ctx.save();
+  ctx.translate(ax,ay);
+  ctx.rotate(aRot*Math.PI/180);
+  // handle
+  ctx.strokeStyle='#8B6347';ctx.lineWidth=7;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,60);ctx.stroke();
+  // blade
+  ctx.fillStyle='#b0b8c0';
+  ctx.beginPath();ctx.moveTo(-18,-8);ctx.lineTo(12,-8);ctx.lineTo(6,12);ctx.lineTo(-12,12);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#d8dfe5';
+  ctx.beginPath();ctx.moveTo(-18,-8);ctx.lineTo(-8,-8);ctx.lineTo(-12,12);ctx.lineTo(-18,8);ctx.closePath();ctx.fill();
+  ctx.restore();
+
+  // draw cracks on logo area
+  if(crackDepth>0){
+    ctx.save();
+    ctx.translate(CX(),CY());
+    const cracks=[
+      [{x:0,y:0},{x:rnd(20,40),y:rnd(15,35)},{x:rnd(30,55),y:rnd(25,50)}],
+      [{x:0,y:0},{x:rnd(-15,5),y:rnd(20,40)},{x:rnd(-30,0),y:rnd(40,60)}],
+      [{x:0,y:0},{x:rnd(-20,-5),y:rnd(-10,10)},{x:rnd(-40,-20),y:rnd(-5,25)}],
+    ];
+    cracks.forEach((pts,i)=>{
+      if(i/3>crackDepth) return;
+      ctx.strokeStyle='rgba(255,200,150,0.7)';
+      ctx.lineWidth=1.5-i*0.3;
+      ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+      pts.slice(1).forEach(p=>ctx.lineTo(p.x*crackDepth,p.y*crackDepth));
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // wood chips
+  woodChips=woodChips.filter(c=>c.life>0.05);
+  woodChips.forEach(c=>{
+    c.x+=c.vx;c.y+=c.vy;c.vy+=0.25;c.vx*=0.96;
+    c.rot+=c.vr;c.life*=0.93;
+    ctx.save();
+    ctx.globalAlpha=c.life;
+    ctx.translate(c.x,c.y);ctx.rotate(c.rot*Math.PI/180);
+    ctx.fillStyle=`hsl(30,60%,${40+Math.random()*15}%)`;
+    ctx.fillRect(-c.w/2,-c.h/2,c.w,c.h);
+    ctx.restore();
+  });
+  ctx.globalAlpha=1;
+}
+
+// ═══════════════════════════════════════════════
+// MODE: DRAG (car)
+// ═══════════════════════════════════════════════
+let carSpeed = 0;
+let logoRope = {x:0,y:0};
+let roadOffset = 0;
+let holdStart = null;
+let isHolding = false;
+let bounceY = 0, bounceVY = 0;
+let logoRotAcc = 0;
+let dustParticles = [];
+
+function dragMode_startHold(){ isHolding=true; holdStart=Date.now(); }
+function dragMode_endHold(){ isHolding=false; }
+
+function spawnDust(n){
+  const lx=CX()+logoX;
+  for(let i=0;i<n;i++){
+    dustParticles.push({
+      x:lx+rnd(-20,20), y:CY()+30+rnd(-5,5),
+      vx:rnd(-4,1), vy:rnd(-2.5,0.5),
+      life:1, size:rnd(6,18)
+    });
+  }
+}
+
+function spawnSpark(){
+  sparks.push({
+    x:rnd(-18,18), y:rnd(-8,18),
+    vx:rnd(-5,5), vy:rnd(-6,-0.5),
+    life:1, size:rnd(1.5,4)
+  });
+}
+
+function drawRoad(){
+  // asphalt
+  ctx.fillStyle='#1a1a22';
+  ctx.fillRect(0,CY()+20,W(),H()-CY()-20);
+  // road lines
+  ctx.strokeStyle='rgba(255,255,200,0.35)';ctx.lineWidth=3;ctx.setLineDash([30,25]);
+  ctx.lineDashOffset=-roadOffset%55;
+  ctx.beginPath();ctx.moveTo(0,CY()+50);ctx.lineTo(W(),CY()+50);ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawCar(x){
+  const y=CY()+10;
+  ctx.save();ctx.translate(x,y);
+  // body
+  ctx.fillStyle='#c0392b';
+  ctx.beginPath();ctx.roundRect(-50,-20,100,30,6);ctx.fill();
+  // roof
+  ctx.fillStyle='#e74c3c';
+  ctx.beginPath();ctx.roundRect(-30,-38,60,22,4);ctx.fill();
+  // windows
+  ctx.fillStyle='rgba(150,220,255,0.6)';
+  ctx.beginPath();ctx.roundRect(-26,-35,24,18,2);ctx.fill();
+  ctx.beginPath();ctx.roundRect(2,-35,24,18,2);ctx.fill();
+  // wheels
+  [[-35,10],[35,10]].forEach(([wx,wy])=>{
+    ctx.fillStyle='#222';ctx.beginPath();ctx.arc(wx,wy,10,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#555';ctx.beginPath();ctx.arc(wx,wy,5,0,Math.PI*2);ctx.fill();
+  });
+  ctx.restore();
+}
+
+// fix: define wheel positions inline
+function drawCarFixed(x){
+  const y=CY()+10;
+  ctx.save();ctx.translate(x,y);
+  ctx.fillStyle='#c0392b';
+  ctx.beginPath();ctx.roundRect(-50,-20,100,30,6);ctx.fill();
+  ctx.fillStyle='#e74c3c';
+  ctx.beginPath();ctx.roundRect(-30,-38,60,22,4);ctx.fill();
+  ctx.fillStyle='rgba(150,220,255,0.6)';
+  ctx.beginPath();ctx.roundRect(-26,-35,24,18,2);ctx.fill();
+  ctx.beginPath();ctx.roundRect(2,-35,24,18,2);ctx.fill();
+  const wheels=[[-35,12],[35,12]];
+  wheels.forEach(([wx,wy])=>{
+    ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(wx,wy,11,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#444';ctx.beginPath();ctx.arc(wx,wy,5,0,Math.PI*2);ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawRope(carX){
+  const logoScreenX=CX()+logoX;
+  const logoScreenY=CY()+bounceY;
+  const ropeStartX=carX-55;
+  const ropeStartY=CY()+10;
+  ctx.strokeStyle='rgba(200,180,140,0.8)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(ropeStartX,ropeStartY);
+  ctx.quadraticCurveTo(
+    (ropeStartX+logoScreenX)/2, ropeStartY+Math.abs(ropeStartX-logoScreenX)*0.1,
+    logoScreenX,logoScreenY
+  );
+  ctx.stroke();
+}
+
+// scratch trail points on the road
+let scratchTrail = [];
+
+function dragMode_draw(){
+  ctx.clearRect(0,0,W(),H());
+  drawRoad();
+
+  // acceleration
+  if(isHolding){
+    carSpeed=Math.min(14, carSpeed+0.35);
+    const spd = carSpeed;
+    // lots more dust
+    const dustN = Math.floor(spd/3)+1;
+    for(let i=0;i<dustN;i++) spawnDust(1);
+    // sparks erupt near logo continuously
+    const sparkN = Math.floor(spd/2)+1;
+    for(let i=0;i<sparkN;i++) spawnSpark();
+    // debris chunks
+    if(Math.random()<spd/18) spawnDebris();
+    total+=Math.floor(spd/4);
+    cpsCount+=Math.floor(spd/6);
+    updateShareBtn();
+  } else {
+    carSpeed=Math.max(0,carSpeed-0.15);
+    // fewer ambient sparks when coasting
+    if(carSpeed>3 && Math.random()<0.2) spawnSpark();
+  }
+
+  roadOffset+=carSpeed;
+
+  const fixedCarX = W()*0.72;
+  const ropeLen = 90;
+  const targetLogoX = fixedCarX - ropeLen - CX();
+  logoX += (targetLogoX - logoX) * 0.08;
+
+  if(carSpeed>0){
+    bounceVY+=(18-bounceY)*0.1-bounceVY*0.3+rnd(-carSpeed*0.4,carSpeed*0.4);
+    bounceY+=bounceVY;
+    bounceY=Math.max(-12,Math.min(38,bounceY));
+    logoRotAcc=-carSpeed*2+rnd(-carSpeed,carSpeed);
+    logoRot+=logoRotAcc;
+  } else {
+    bounceVY*=0.8; bounceY*=0.9; logoRot*=0.92;
+  }
+
+  // scratch trail on road — record logo ground position
+  const logoGroundX = CX()+logoX;
+  const logoGroundY = CY()+32;
+  if(carSpeed>1){
+    scratchTrail.push({x:logoGroundX, y:logoGroundY+rnd(-2,2), life:1, w:rnd(1,3)});
+  }
+  // fade and draw scratches
+  scratchTrail = scratchTrail.filter(s=>s.life>0.03);
+  scratchTrail.forEach(s=>{
+    s.life -= 0.008;
+    ctx.globalAlpha = s.life*0.55;
+    ctx.strokeStyle = `hsl(${rnd(20,40)},70%,55%)`;
+    ctx.lineWidth = s.w;
+    ctx.beginPath();
+    ctx.moveTo(s.x-rnd(0,6), s.y);
+    ctx.lineTo(s.x+rnd(0,6), s.y+rnd(0,3));
+    ctx.stroke();
+  });
+
+  // dust cloud
+  dustParticles=dustParticles.filter(p=>p.life>0.03);
+  dustParticles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy-=0.02;
+    p.size*=1.02; p.life*=0.91;
+    ctx.globalAlpha=p.life*0.35;
+    ctx.fillStyle=`hsl(30,15%,${50+p.life*20}%)`;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
+  });
+
+  // sparks — big and bright
+  sparks=sparks.filter(p=>p.life>0.04);
+  sparks.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.vx*=0.97; p.life*=0.87;
+    // tail
+    ctx.globalAlpha=p.life*0.5;
+    ctx.strokeStyle=`hsl(${rnd(20,55)},100%,65%)`;
+    ctx.lineWidth=p.size*0.8;
+    ctx.beginPath();
+    ctx.moveTo(CX()+logoX+p.x, CY()+bounceY+p.y);
+    ctx.lineTo(CX()+logoX+p.x-p.vx*3, CY()+bounceY+p.y-p.vy*3);
+    ctx.stroke();
+    // head
+    ctx.globalAlpha=p.life;
+    ctx.fillStyle=`hsl(${rnd(40,65)},100%,85%)`;
+    ctx.beginPath();ctx.arc(CX()+logoX+p.x,CY()+bounceY+p.y,p.size,0,Math.PI*2);ctx.fill();
+  });
+
+  // debris chunks
+  if(!window._debris) window._debris=[];
+  window._debris = window._debris.filter(d=>d.life>0.04);
+  window._debris.forEach(d=>{
+    d.x+=d.vx; d.y+=d.vy; d.vy+=0.25; d.vx*=0.97;
+    d.rot+=d.vr; d.life*=0.92;
+    ctx.save();
+    ctx.globalAlpha=d.life;
+    ctx.translate(d.x,d.y); ctx.rotate(d.rot);
+    ctx.fillStyle=`hsl(${rnd(15,35)},60%,45%)`;
+    ctx.fillRect(-d.w/2,-d.h/2,d.w,d.h);
+    ctx.restore();
+  });
+
+  ctx.globalAlpha=1;
+
+  drawRope(fixedCarX);
+  drawCarFixed(fixedCarX);
+
+  setLogoPos(logoX, bounceY, logoRot, Math.max(0.65,1-carSpeed*0.025));
+  updateScoreDisplay();
+}
+
+function spawnDebris(){
+  if(!window._debris) window._debris=[];
+  const lx=CX()+logoX, ly=CY()+bounceY;
+  for(let i=0;i<3;i++){
+    window._debris.push({
+      x:lx+rnd(-10,10), y:ly+rnd(-5,5),
+      vx:rnd(-4,4), vy:rnd(-5,-1),
+      rot:rnd(0,Math.PI*2), vr:rnd(-0.3,0.3),
+      life:1, w:rnd(4,10), h:rnd(3,7)
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SHARED SCORE / UI
+// ═══════════════════════════════════════════════
+const totalEl=document.getElementById('total-val');
+const cpsEl=document.getElementById('cps-val');
+const bestEl=document.getElementById('best-val');
+const instrEl=document.getElementById('instruction');
+const toast=document.getElementById('toast');
+const shareBtn=document.getElementById('share-btn');
+
+const instructions={
+  click:'Click like crazy on Claude',
+  fire:'Click fast to fuel the flames',
+  axe:'Click to swing the axe',
+  drag:'Hold to accelerate'
+};
+
+function setMode(m){
+  mode=m;
+  // reset per-mode state
+  firePower=0;fireParticles=[];
+  punchParticles=[];punchShake=0;
+  axeAnimating=false;axeProgress=0;crackDepth=0;woodChips=[];
+  carSpeed=0;logoX=0;bounceY=0;logoRot=0;dustParticles=[];sparks=[];
+  resetLogoColor();setLogoPos(0,0,0,1);
+  instrEl.textContent=instructions[m];
+  document.querySelectorAll('.mode-btn').forEach(b=>{
+    b.classList.toggle('active',b.dataset.mode===m);
+  });
+}
+
+function showToast(msg,dur){
+  toast.textContent=msg;toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),dur||2400);
+}
+
+function spawnFloatie(x,y,emoji){
+  const f=document.createElement('div');
+  f.className='floatie';
+  f.textContent=emoji||'+15';
+  f.style.left=(x-10)+'px';f.style.top=(y-8)+'px';
+  document.body.appendChild(f);
+  setTimeout(()=>f.remove(),880);
+}
+
+function updateScoreDisplay(){
+  totalEl.textContent=total.toLocaleString('fr');
+}
+
+// CPS
+setInterval(()=>{
+  cps=cpsCount;cpsCount=0;
+  if(cps>best){best=cps;bestEl.textContent=best;updateShareBtn();}
+  cpsEl.textContent=cps;
+  updateScoreDisplay();
+  const pct=Math.min(100,(total/MAX_DMG)*100);
+  dmgBar.style.width=pct+'%';
+},1000);
+
+function updateShareBtn(){
+  if(total===0)return;
+  const h=myHandle?myHandle+' ':'';
+  const modeEmoji={click:'👊',fire:'🔥',axe:'🪓',drag:'🚗'};
+  const emoji=modeEmoji[mode]||'🔥';
+  const text=`${h}I dealt ${total.toLocaleString('fr')} damage to Claude ${emoji} Beat my score at fuckingclaude.com`;
+  shareBtn.href='https://twitter.com/intent/tweet?text='+encodeURIComponent(text);
+  shareBtn.classList.add('visible');
+}
+
+// ═══════════════════════════════════════════════
+// INPUT HANDLING
+// ═══════════════════════════════════════════════
+arena.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(mode==='drag'){dragMode_startHold();return;}
+  // click / fire / axe
+  const bx=e.clientX,by=e.clientY;
+  total+=15;cpsCount++;updateScoreDisplay();updateShareBtn();
+  if(mode==='click') clickMode_hit(bx,by);
+  else if(mode==='fire') fireMode_hit(bx,by);
+  else if(mode==='axe') axeMode_hit(bx,by);
+});
+
+arena.addEventListener('pointerup',e=>{
+  if(mode==='drag') dragMode_endHold();
+});
+arena.addEventListener('pointerleave',e=>{
+  if(mode==='drag') dragMode_endHold();
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&document.activeElement!==document.getElementById('handle')){
+    e.preventDefault();
+    if(mode==='drag'){dragMode_startHold();return;}
+    const r=arena.getBoundingClientRect();
+    const bx=r.left+r.width/2,by=r.top+r.height/2;
+    total+=15;cpsCount++;updateScoreDisplay();
+    if(mode==='click') clickMode_hit(bx,by);
+    else if(mode==='fire') fireMode_hit(bx,by);
+    else if(mode==='axe') axeMode_hit(bx,by);
+  }
+});
+document.addEventListener('keyup',e=>{
+  if(e.code==='Space'&&mode==='drag') dragMode_endHold();
+});
+
+// ═══════════════════════════════════════════════
+// GAME LOOP
+// ═══════════════════════════════════════════════
+function loop(){
+  if(mode==='click') clickMode_draw();
+  else if(mode==='fire') fireMode_draw();
+  else if(mode==='axe') axeMode_draw();
+  else if(mode==='drag') dragMode_draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// ═══════════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════════
+const STORAGE_KEY='fc-lb-v2';
+async function loadLB(){try{const r=await window.storage.get(STORAGE_KEY,true);return r?JSON.parse(r.value):[]}catch(e){return[]}}
+async function saveLB(e){try{await window.storage.set(STORAGE_KEY,JSON.stringify(e),true)}catch(e){}}
+
+function renderLB(entries){
+  const lbList=document.getElementById('lb-list');
+  const rc=['gold','silver','bronze'];
+  if(!entries.length){lbList.innerHTML='<div class="lb-empty">No scores yet. Be the first.</div>';return;}
+  lbList.innerHTML=entries.map((e,i)=>{
+    const h=e.handle.startsWith('@')?e.handle:'@'+e.handle;
+    const url='https://twitter.com/'+h.replace('@','');
+    return`<div class="lb-row"><div class="lb-rank ${rc[i]||''}">${i+1}</div><div class="lb-handle"><a href="${url}" target="_blank" rel="noopener">${h}</a></div><div class="lb-score">${e.score}<span class="lb-unit">dmg</span></div></div>`;
+  }).join('');
+}
+
+async function submitScore(){
+  const hEl=document.getElementById('handle');
+  let h=hEl.value.trim();
+  if(!h){showToast('Enter your handle first');return;}
+  if(total===0){showToast('Deal some damage first!');return;}
+  h=h.startsWith('@')?h:'@'+h;
+  myHandle=h;
+  let entries=await loadLB();
+  const idx=entries.findIndex(e=>(e.handle.startsWith('@')?e.handle:'@'+e.handle).toLowerCase()===h.toLowerCase());
+  if(idx>=0){
+    if(total>entries[idx].score){entries[idx].score=total;showToast('New record!');}
+    else{showToast('Play more to beat your score!');renderLB(entries);return;}
+  } else {entries.push({handle:h,score:total});}
+  entries.sort((a,b)=>b.score-a.score);entries=entries.slice(0,10);
+  await saveLB(entries);renderLB(entries);
+  const pos=entries.findIndex(e=>(e.handle.startsWith('@')?e.handle:'@'+e.handle).toLowerCase()===h.toLowerCase())+1;
+  showToast('Score submitted! You are #'+pos,3000);
+  updateShareBtn();
+}
+
+(async()=>{renderLB(await loadLB());})();
+</script>
+</body>
+</html>
